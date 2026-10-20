@@ -1,82 +1,58 @@
 const imageContainer = document.querySelector('.image-container');
-const loadMoreBtn = document.querySelector('.btn');
+const loadMoreButton = document.querySelector('.btn');
 
-const imageCount = 3;
 let imageNumber = imageContainer.querySelectorAll('img').length;
 
-// Har card ke download button par click handler lagao
-imageContainer.addEventListener('click', async (event) => {
-    const downloadBtn = event.target.closest('.download-btn');
-
-    if (!downloadBtn) return;
-
-    event.preventDefault();
-
-    const imageUrl = downloadBtn.dataset.imageUrl || downloadBtn.href;
-    const originalText = downloadBtn.textContent;
-
-    downloadBtn.textContent = 'Downloading...';
-    downloadBtn.setAttribute('aria-busy', 'true');
-
-    try {
-        const response = await fetch(imageUrl, { mode: 'cors' });
-
-        if (!response.ok) {
-            throw new Error('Image download request failed');
-        }
-
-        const imageBlob = await response.blob();
-        const blobUrl = URL.createObjectURL(imageBlob);
-        const tempLink = document.createElement('a');
-
-        tempLink.href = blobUrl;
-        tempLink.download = downloadBtn.dataset.filename || 'gallery-image.jpg';
-
-        document.body.appendChild(tempLink);
-        tempLink.click();
-        tempLink.remove();
-
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    } catch (error) {
-        // Agar image host download block kare, image ko naye tab mein kholo
-        window.open(imageUrl, '_blank', 'noopener');
-        downloadBtn.textContent = 'Open image';
-    } finally {
-        downloadBtn.removeAttribute('aria-busy');
-
-        if (downloadBtn.textContent === 'Downloading...') {
-            downloadBtn.textContent = originalText;
-        }
-    }
-});
-
-loadMoreBtn.addEventListener('click', addNewImages);
-
-function addNewImages() {
-    for (let index = 0; index < imageCount; index++) {
+loadMoreButton.addEventListener('click', function () {
+    for (let i = 0; i < 3; i++) {
         imageNumber++;
 
         const imageCard = document.createElement('div');
         imageCard.className = 'image-card';
 
-        const newImg = document.createElement('img');
-        const randomNum = Math.floor(Math.random() * 2000) + 1;
-        const imageUrl = `https://picsum.photos/800/600?random=${randomNum}`;
+        const image = document.createElement('img');
+        const imageId = Math.floor(Math.random() * 2000) + 1;
 
-        newImg.src = imageUrl;
-        newImg.alt = `Random gallery image ${imageNumber}`;
-        newImg.loading = 'lazy';
+        image.src = `https://picsum.photos/800/600?random=${imageId}`;
+        image.alt = `Gallery image ${imageNumber}`;
+        image.loading = 'lazy';
 
-        const downloadBtn = document.createElement('a');
-        downloadBtn.className = 'download-btn';
-        downloadBtn.href = imageUrl;
-        downloadBtn.dataset.imageUrl = imageUrl;
-        downloadBtn.dataset.filename = `gallery-image-${imageNumber}.jpg`;
-        downloadBtn.textContent = 'Download';
+        const downloadButton = document.createElement('a');
+        downloadButton.className = 'download-btn';
+        downloadButton.href = image.src;
+        downloadButton.textContent = 'Download';
+        downloadButton.target = '_blank';
+        downloadButton.rel = 'noopener';
 
-        imageCard.append(newImg, downloadBtn);
+        imageCard.appendChild(image);
+        imageCard.appendChild(downloadButton);
         imageContainer.appendChild(imageCard);
-
-        newImg.addEventListener('error', () => imageCard.remove());
     }
-}
+});
+
+imageContainer.addEventListener('click', async function (event) {
+    const downloadButton = event.target.closest('.download-btn');
+
+    if (!downloadButton) {
+        return;
+    }
+
+    event.preventDefault();
+
+    const imageUrl = downloadButton.href;
+    const fileName = `gallery-image-${imageNumber}.jpg`;
+
+    try {
+        const response = await fetch(imageUrl);
+        const imageFile = await response.blob();
+        const imageLink = document.createElement('a');
+
+        imageLink.href = URL.createObjectURL(imageFile);
+        imageLink.download = fileName;
+        imageLink.click();
+
+        URL.revokeObjectURL(imageLink.href);
+    } catch (error) {
+        window.open(imageUrl, '_blank');
+    }
+});
